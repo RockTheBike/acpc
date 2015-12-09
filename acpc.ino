@@ -12,15 +12,15 @@
 #define RELAYPIN 2 // normally open relay for AC power
 #define VOLTCOEFF 4.1666 // 500 at 120vac
 #define VOLTOFFSET 0.0 // when voltage is 0 this is the ADC value
-#define AMPCOEFF 180.5 // 39 0.1A   252 at 1.28A
-#define AMPOFFSET 18.0 // when current is 0 amps this is the ADC value
+#define AMPCOEFF 174.4 // 39 0.1A   252 at 1.28A    171 at 0.82A
+#define AMPOFFSET 28.0 // when nothing plugged in, this is the ADC value
 
 #define OVERSAMPLING 50 // how many times to average analogReads
 
 Adafruit_NeoPixel strip1 = Adafruit_NeoPixel(NUMLEDS, STRIP1PIN, NEO_GRB + NEO_KHZ800);
 uint32_t offColor = 0; // the color used for pixels when "off"
 
-int ampsADC, voltsADC;
+float ampsADC, voltsADC;
 float volts, amps;
 
 void setup() {
@@ -44,18 +44,19 @@ void loop() {
   amps = (ampsADC - AMPOFFSET) / AMPCOEFF;
   Serial.print(volts,1);
   Serial.print("V (");
-  Serial.print(voltsADC);
+  Serial.print(voltsADC,1);
   Serial.print(")  ");
-  Serial.print(amps,1);
+  Serial.print(amps,2);
   Serial.print("A (");
-  Serial.print(ampsADC);
+  Serial.print(ampsADC,1);
   Serial.println(")  ");
 }
 
-int averageRead(byte pin) {
+float averageRead(byte pin) {
   int adder = 0;
   for (int i = 0; i < OVERSAMPLING; i++) {
     adder += analogRead(pin);
+    delayMicroseconds(666);
   }
-  return (adder/OVERSAMPLING);
+  return ((float)adder/OVERSAMPLING);
 }
