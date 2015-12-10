@@ -1,7 +1,8 @@
 #define BAUDRATE 57600 // for serial communications
-#define VOLTMIN 100.0 // when relay connects outlets
-#define VOLTMAX 135.0 // when relay disconnects outlets
+#define VOLTMIN 80.0 // when relay connects outlets
+#define VOLTMAX 140.0 // when relay disconnects outlets
 #define VOLTHYSTERESIS 5.0 // this many volts closer to ideal before relay closes
+#define RELAYMINTIME 1000 // minimum milliseconds relay must stay open before closing again
 
 #include <Adafruit_NeoPixel.h>
 
@@ -22,6 +23,21 @@ uint32_t offColor = 0; // the color used for pixels when "off"
 
 float ampsADC, voltsADC;
 float volts, amps;
+unsigned long lastRelayTime = 0; // remember the last time we flipped relay
+
+void updateRelay(float volts) {
+  if (digitalRead(RELAYPIN)) { // if relay is closed
+    if ((volts > VOLTMAX) || (volts < VOLTMIN)) {
+      digitalWrite(RELAYPIN,LOW); // open relay
+      lastRelayTime = millis(); // store when it opened
+    }
+  } else // relay must be open
+  if (millis() - lastRelayTime > RELAYMINTIME) { // if it has been opened for long enough
+    if ((volts > VOLTMIN + VOLTHYSTERESIS) && (volts < VOLTMAX - VOLTHYSTERESIS)) {
+      digitalWrite(RELAYPIN,HIGH); // close relay
+    }
+  }
+}
 
 void setup() {
   Serial.begin(57600);
@@ -31,8 +47,8 @@ void setup() {
   offColor = strip1.Color(10, 10, 10);
   for (int i = 0; i < NUMLEDS; i++) strip1.setPixelColor(i,offColor);
   strip1.show();
+  lastRelayTime = millis();
 }
-
 
 void loop() {
   for (int i = 0; i < NUMLEDS; i++) strip1.setPixelColor(i,strip1.Color(i,0,70-i));
@@ -50,6 +66,13 @@ void loop() {
   Serial.print("A (");
   Serial.print(ampsADC,1);
   Serial.println(")  ");
+  if (Serial.available()) {
+    byte inByte = Serial.read();
+    if (inByte == 49) digitalWrite(RELAYPIN,HIGH);
+    if (inByte == 48) digitalWrite(RELAYPIN,LOW);
+    while (Serial.available()) inByte = Serial.read();
+  }
+  updateRelay(volts);
 }
 
 float averageRead(byte pin) {
