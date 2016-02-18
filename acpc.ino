@@ -78,6 +78,27 @@ void loop() {
   ampsADC = averageRead(A1);
   amps = (ampsADC - AMPOFFSET) / AMPCOEFF;
   watts = amps * volts;
+  lastLoopTime = millis();
+  /*if (Serial.available()) {
+    fullness = Serial.parseInt();
+    while (Serial.available()) byte inByte = Serial.read();
+  animateLeds((float)fullness / 100.0);
+  }*/
+  float powerLevel = watts/MAXPOWER;
+  if (powerLevel > 0.25) {
+    patternPos += 1;
+    if (powerLevel > 0.5) {
+      patternPos += 1;
+      if (powerLevel > 0.75) {
+        patternPos += 1;
+      }
+    }
+  }
+  animateLeds(powerLevel);
+  updateRelay(volts);
+}
+
+void printDisplay() {
   Serial.print(volts,1);
   Serial.print("V (");
   Serial.print(voltsADC,1);
@@ -89,14 +110,6 @@ void loop() {
   Serial.print(watts,1);
   Serial.print("W  ");
   Serial.println(millis() - lastLoopTime);
-  lastLoopTime = millis();
-  /*if (Serial.available()) {
-    fullness = Serial.parseInt();
-    while (Serial.available()) byte inByte = Serial.read();
-  animateLeds((float)fullness / 100.0);
-  }*/
-  animateLeds(watts/MAXPOWER);
-  updateRelay(volts);
 }
 
 float averageRead(byte pin) {
