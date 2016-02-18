@@ -24,6 +24,7 @@
 Adafruit_NeoPixel strip1 = Adafruit_NeoPixel(STRIP1NUM, STRIP1PIN, NEO_GRB + NEO_KHZ800);
 uint32_t offColor = 0; // the color used for pixels when "off"
 uint32_t onColor = 0; // the color used for pixels when "on"
+#define ONBRIGHTNESS 133.0
 
 float ampsADC, voltsADC;
 float volts, amps, watts;
@@ -35,11 +36,21 @@ int fullness = 50;
 void animateLeds(float fullness) { // fullness is 0.0 to 1.0
   unsigned long lastStrip1Time = millis();
   int numLit = constrain(STRIP1NUM * fullness,0,STRIP1NUM-2);
+  byte WheelPos = 255 * fullness; // let's try this the easy way
+  if (WheelPos < 85) {
+    onColor =  strip1.Color(255 - WheelPos * 3, WheelPos * 3, 0);
+  } else if (WheelPos < 170) {
+    WheelPos -= 85;
+    onColor =  strip1.Color(0, 255 - WheelPos * 3, WheelPos * 3);
+  } else {
+    WheelPos -= 170;
+    onColor =  strip1.Color(WheelPos * 3, 0, 255 - WheelPos * 3);
+  }
   for (int i = 0; i < STRIP1NUM; i++) {
     if (i <= numLit) {
-    strip1.setPixelColor(STRIP1NUM-(i+patternPos)%STRIP1NUM-1,onColor);
+      strip1.setPixelColor(STRIP1NUM-(i+patternPos)%STRIP1NUM-1,onColor);
     } else {
-    strip1.setPixelColor(STRIP1NUM-(i+patternPos)%STRIP1NUM-1,offColor);
+      strip1.setPixelColor(STRIP1NUM-(i+patternPos)%STRIP1NUM-1,offColor);
     }
   }
   patternPos += 1;
@@ -65,8 +76,7 @@ void setup() {
   Serial.println("AC PedalCharger display and relay box");
   pinMode(RELAYPIN,OUTPUT);
   strip1.begin();
-  offColor = strip1.Color(10, 10, 10);
-  onColor = strip1.Color(200, 200, 200);
+  offColor = strip1.Color(5, 5, 5);
   for (int i = 0; i < STRIP1NUM; i++) strip1.setPixelColor(i,offColor);
   strip1.show();
   lastLoopTime = millis();
